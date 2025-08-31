@@ -1,0 +1,47 @@
+﻿@page "/measure"
+@page "/measure/{MeasureValue:double?}/{MeasureDate:datetime?}/{MeasurePlace?}"  // パラメータ付きのルーティング 「?」:任意 数値の場合は型指定する
+
+@using BlazorSampleApp.Components.Objects 
+@rendermode InteractiveServer  // サーバの値をクライアントに反映する
+
+
+<PageTitle>MeasurePage</PageTitle>
+
+<h3>計測画面</h3>
+
+<p>計測値を表示します</p>
+<p>計測値：@MeasureValue m/s</p>
+<p>日時：@MeasureDate.ToString("yyyy/MM/dd HH:mm:ss")</p>
+<p>場所：@MeasurePlace </p>
+
+<button class="btn btn-primary" @onclick="Measure">計測</button>
+
+@code {
+	[Parameter]
+	public double MeasureValue { get; set; } = 0;
+	[Parameter]
+	public DateTime MeasureDate { get; set; } = DateTime.MinValue;
+	[Parameter]
+	public string MeasurePlace {get; set;} = "--";
+
+	// 初期化処理(コンストラクタはDIが完了していないのでOnInitializedで初期化する。))
+	protected override void OnInitialized()
+	{
+		Clear();
+	}
+
+	private void Measure()
+	{
+		var result = MeasureService.Measure();
+
+		MeasureValue = result.Value;
+		MeasureDate = result.Date;
+	}
+
+	private void Clear()
+	{
+		MeasureValue = 0;
+		MeasureDate = DateTime.MinValue;
+		MeasurePlace = "--";
+	}
+}

@@ -1,19 +1,43 @@
 ﻿@page "/counter"
-@rendermode InteractiveServer
+@* @rendermode InteractiveServer  // サーバの値をクライアントに反映する *@
+@rendermode @(new InteractiveServerRenderMode(prerender:false))  //ProtectedSessionStorageを使用する場合、prerenderをfalseにする必要がある
+@inject Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedSessionStorage Storage
 
 <PageTitle>Counter</PageTitle>
 
 <h1>Counter</h1>
 
-<p role="status">Current count: @currentCount</p>
-
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+@* OnInitializedAsyncが終わるまでブロック *@
+@if(_currentCount.HasValue){
+	<p role="status">Current count: @_currentCount</p>
+	<button class="btn btn-primary" @onclick="IncrementCountAsync">Click me</button>
+}
+else{
+	<p>データ取得中...</p>
+}
 
 @code {
-    private int currentCount = 0;
+	private int? _currentCount = null;
 
-    private void IncrementCount()
-    {
-        currentCount++;
-    }
+	protected override async Task OnInitializedAsync()
+	{
+		var result = await Storage.GetAsync<int>("currentCount");
+
+		await Task.Delay(3000); //データ取得の遅延をシミュレート
+
+		if (result.Success)
+		{
+			_currentCount = result.Value;
+		}
+		else
+		{
+			_currentCount = 0;
+		}
+	}
+
+	private async Task IncrementCountAsync()
+	{
+		_currentCount++;
+		await Storage.SetAsync("currentCount", _currentCount);
+	}
 }

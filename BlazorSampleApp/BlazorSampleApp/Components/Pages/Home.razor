@@ -1,7 +1,76 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+@inject Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedSessionStorage Storage
+
 
 <PageTitle>Home</PageTitle>
 
 <h1>Hello, world!</h1>
 
 Welcome to your new app.
+
+<br />
+<br />
+
+<p>アンカーで遷移</p>
+<a href="measure">計測ページへ</a>
+
+<br />
+<br />
+
+<p>ボタンで遷移</p>
+<a class="btn btn-primary" href="measure">計測ページへ</a>
+
+<br />
+<br />
+
+<p>Navigationで遷移</p>
+<button class="btn btn-primary" @onclick="NavigateToMeasure">計測ページへ</button>
+
+<br />
+<br />
+
+<p>パラメータを次の画面に渡して遷移する</p>
+<a href="measure/3.6/@Uri.EscapeDataString(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))/名古屋">計測ページへ</a>
+
+<br />
+<br />
+
+<p>Strageから値を取得</p>
+<button class="btn btn-primary" @onclick="GetCounterFromStorage">カウンター値を取得</button>
+<p>カウンター値：@CounterValue</p>
+
+<br />
+<br />
+<p>双方向データバインド</p>
+@* 双方向の場合は@bindを使用する。通常のbindはロストフォーカス時に値が更新される。@bind:event=oninputを使用するとリアルタイムで値が更新される *@
+@* placeholder=ウォーターマーク *@
+<input type="text"
+	@bind="_areaName" 　　　
+	@bind:event="oninput" 
+	placeholder="エリアを入力してください。"  
+	class="form-control"/>  
+<p>入力された地域：@_areaName</p>
+
+@code {
+	private string _areaName = "札幌";
+
+	public int CounterValue { get; set; } = 0;
+
+	private void NavigateToMeasure(MouseEventArgs args)
+	{
+		// ここで入力チェックが可能
+
+		Navigation.NavigateTo("measure");
+	}
+
+	private async Task GetCounterFromStorage(MouseEventArgs args)
+	{
+		var result = await Storage.GetAsync<int>("currentCount");
+		if (result.Success)
+		{
+			CounterValue = result.Value;
+		}
+	}
+}
