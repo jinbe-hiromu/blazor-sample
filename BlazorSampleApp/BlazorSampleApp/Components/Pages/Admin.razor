@@ -1,0 +1,189 @@
+﻿@page "/admin"
+
+@using System.ComponentModel.DataAnnotations
+
+<h3>クイズ管理ページ</h3>
+
+<div class="p-4 space-y-4">
+    <!-- 問題追加フォーム -->
+    <div class="border p-4 rounded shadow">
+        <h4>問題追加</h4>
+
+        <div class="mb-2">
+            <label>問題文:</label>
+            <input class="form-control" @bind="newQuestion.Text" />
+        </div>
+
+        <div class="mb-2">
+            <label>点数:</label>
+            <input type="number" class="form-control" @bind="newQuestion.Score" />
+        </div>
+
+        <div class="mb-2">
+            <label>問題タイプ:</label>
+            <select class="form-control" @bind="newQuestion.Type">
+                <option value="Choice">選択式</option>
+                <option value="Text">記述式</option>
+            </select>
+        </div>
+
+        @if (newQuestion.Type == QuestionType.Text)
+        {
+            <div class="mb-2">
+                <label>正解記述:</label>
+                <input class="form-control" @bind="newQuestion.CorrectText" />
+            </div>
+        }
+        else if (newQuestion.Type == QuestionType.Choice)
+        {
+            <div class="mb-2">
+                <h5>選択肢</h5>
+                @foreach (var choice in newQuestion.Choices.Select((c, i) => new { c, i }))
+                {
+                    <div class="flex items-center space-x-2 mb-1">
+                        <input class="form-control" @bind="newQuestion.Choices[choice.i]" />
+
+@*                         <input type="radio"
+                               name="correctAnswer"
+                               @bind="newQuestion.CorrectIndex"
+                               @bind-value="choice.i" /> *@
+
+                        <button class="btn btn-danger btn-sm" @onclick="() => RemoveChoice(choice.i)">削除</button>
+                    </div>
+                }
+                <button class="btn btn-secondary btn-sm" @onclick="AddChoice">選択肢追加</button>
+            </div>
+        }
+
+        <button class="btn btn-primary" @onclick="AddQuestion">問題を追加</button>
+    </div>
+
+    @*     <div class="form-check">
+        <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1">
+        <label class="form-check-label" for="flexRadioDefault1">
+            Default radio
+        </label>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" checked>
+        <label class="form-check-label" for="flexRadioDefault2">
+            Default checked radio
+        </label>
+    </div> *@
+
+    <InputRadioGroup @bind-Value="_kind" @bind-Value:after="KindChanged">
+        <div class="form-check">
+            <label>
+                <InputRadio class="form-check-input" Value="0" /> Option 1
+            </label>
+        </div>
+
+        <div class="form-check">
+            <label>
+                <InputRadio class="form-check-input" Value="1" /> Option 2
+            </label>
+        </div>
+
+        <div class="form-check">
+            <label>
+                <InputRadio class="form-check-input" Value="2" /> Option 3
+            </label>
+        </div>
+
+    </InputRadioGroup>
+
+    <!-- 問題リスト -->
+    <div class="border p-4 rounded shadow">
+        <h4>作成済み問題</h4>
+        <ul>
+            @foreach (var q in questions)
+            {
+                <li>
+                    <b>@q.Text</b>（@q.Score 点, @q.Type）
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteQuestion(q)">削除</button>
+                </li>
+            }
+        </ul>
+    </div>
+
+    <!-- ルーム管理 -->
+    <div class="border p-4 rounded shadow">
+        <h4>ルーム管理</h4>
+        <button class="btn btn-success" @onclick="GenerateRoomId">クイズ開始</button>
+        @if (!string.IsNullOrEmpty(roomId))
+        {
+            <p>ルームID: <b>@roomId</b></p>
+        }
+    </div>
+</div>
+
+@code {
+    private int _kind = 1;
+
+    // モデル
+    public enum QuestionType { Choice, Text }
+
+    public class Question
+    {
+        [Required]
+        public string Text { get; set; } = "";
+        public int Score { get; set; } = 10;
+        public QuestionType Type { get; set; } = QuestionType.Text;
+        public List<string> Choices { get; set; } = new();
+        public int CorrectIndex { get; set; } = -1; // 選択式の正解インデックス
+        public string? CorrectText { get; set; }    // 記述式の正解
+    }
+
+    // 状態
+    private List<Question> questions = new();
+    private Question newQuestion = new();
+    private string? roomId;
+
+    // 処理
+    private void AddChoice()
+    {
+        newQuestion.Choices.Add("");
+    }
+
+    private void RemoveChoice(int index)
+    {
+        if (index >= 0 && index < newQuestion.Choices.Count)
+        {
+            newQuestion.Choices.RemoveAt(index);
+        }
+    }
+
+    private void AddQuestion()
+    {
+        if (!string.IsNullOrWhiteSpace(newQuestion.Text))
+        {
+            // DeepCopyする
+            var copy = new Question
+            {
+                Text = newQuestion.Text,
+                Score = newQuestion.Score,
+                Type = newQuestion.Type,
+                Choices = new List<string>(newQuestion.Choices),
+                CorrectIndex = newQuestion.CorrectIndex
+            };
+            questions.Add(copy);
+
+            // リセット
+            newQuestion = new Question();
+        }
+    }
+
+    private void DeleteQuestion(Question q)
+    {
+        questions.Remove(q);
+    }
+
+    private void GenerateRoomId()
+    {
+        roomId = Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper();
+    }
+
+    private void KindChanged()
+	{
+	}
+}
