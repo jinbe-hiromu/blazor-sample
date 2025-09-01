@@ -1,0 +1,46 @@
+﻿@page "/measuresetting"
+@rendermode @(new InteractiveServerRenderMode(prerender:false))
+
+<h3>計測設定</h3>
+
+<select class="form-select" style="width:300px" @bind="_selectedCycle">
+	<option value="0">計測しない</option>
+	<option value="1">毎日</option>
+	<option value="2">毎週</option>
+	<option value="3">毎月</option>
+</select>
+
+
+<select class="form-select" @bind="_selectedProductId">
+	@foreach(var val in _products)
+	{
+		<option value="@val.ProductId">@val.ProductName</option>
+	}
+</select>
+
+<button class="btn btn-primary" @onclick="Save">保存</button>
+
+@code {
+	private int _selectedCycle = 0;
+	private List<ProductEntity> _products = new List<ProductEntity>();
+	private int _selectedProductId = 0;
+
+	protected override void OnInitialized()
+	{
+		_products.Add(new ProductEntity { ProductId = 100, ProductName = "AAA" });
+		_products.Add(new ProductEntity { ProductId = 200, ProductName = "BBB" });
+		_products.Add(new ProductEntity { ProductId = 300, ProductName = "CCC" });
+
+		base.OnInitialized();
+	}
+
+	private class ProductEntity
+	{
+		public int ProductId{ get; set; }
+		public string ProductName{ get; set; }
+	}
+
+	private void Save(MouseEventArgs args)
+	{
+	}
+}
