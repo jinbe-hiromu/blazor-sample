@@ -16,41 +16,41 @@
 
 		<div class="mb-2">
 			<label>問題文:</label>
-			<input class="form-control" @bind="newQuestion.Text" />
+			<input class="form-control" @bind="_questionText" />
 		</div>
 
 		<div class="mb-2">
 			<label>点数:</label>
-			<input type="number" class="form-control" @bind="newQuestion.Score" />
+			<input type="number" class="form-control" @bind="_score" />
 		</div>
 
 		<div class="mb-2">
 			<label>問題タイプ:</label>
-			<select class="form-control" @bind="newQuestion.Type">
+			<select class="form-control" @bind="_questionType">
 				<option value="Choice">選択式</option>
 				<option value="Text">記述式</option>
 			</select>
 		</div>
 
-		@if (newQuestion.Type == QuestionType.Text)
+		@if (_questionType == QuestionType.Text)
 		{
 			<div class="mb-2">
 				<label>正解記述:</label>
-				<input class="form-control" @bind="newQuestion.CorrectText" />
+				<input class="form-control" @bind="_correctText" />
 			</div>
 		}
-		else if (newQuestion.Type == QuestionType.Choice)
+		else if (_questionType == QuestionType.Choice)
 		{
 			<div class="mb-2">
 				<h5>選択肢</h5>
-				<InputRadioGroup @bind-Value="newQuestion.CorrectIndex">
-				@foreach (var choice in newQuestion.Choices.Select((c, i) => new { c, i }))
+				<InputRadioGroup @bind-Value="_correctIndex">
+				@foreach (var choice in _choices.Select((c, i) => new { c, i }))
 				{
 					<div class="d-flex align-items-center mb-2">
 
 						<InputRadio class="form-check-input me-3" Value="choice.i" />
 
-						<input class="form-control me-3" @bind="newQuestion.Choices[choice.i]" />
+						<input class="form-control me-3" @bind="_choices[choice.i]" />
 
 
 						<button class="btn btn-danger btn-sm" @onclick="() => RemoveChoice(choice.i)">削除</button>
@@ -73,7 +73,15 @@
 			@foreach (var q in QuestionManager.Questions)
 			{
 				<li>
-					<b>@q.Text</b>（@q.Score 点, @q.Type, @q.CorrectText, @q.CorrectIndex, @string.Join(" ",@q.Choices))
+					<b>@q.Text @q.Score 点</b>
+					@if(q is ChoiceQuestion choiceQuestion)
+					{
+						<b>選択式 正解：@choiceQuestion.CorrectIndex 選択肢：@string.Join(",",@choiceQuestion.Choices)</b>
+					}
+					else if (q is TextQuestion textQuestion)
+					{
+						<b>記述式 正解：@textQuestion.CorrectText</b>
+					}
 					<button class="btn btn-sm btn-danger" @onclick="() => DeleteQuestion(q)">削除</button>
 				</li>
 			}
@@ -107,12 +115,22 @@
 </div>
 
 @code {
-	private int _kind = 1;
-
 	// 状態
-	// private List<Question> questions = new();
-	private Question newQuestion = new();
+	private string _questionText = string.Empty;
+	private QuestionType _questionType = QuestionType.Choice;
+	private string _correctText = string.Empty;
+	private int _score = 10;
+	private int _correctIndex = -1;
+	private List<string> _choices = new List<string>();
+
 	private string? _roomId;
+
+	private Dictionary<QuestionType, IQuestionFactory> _factories 
+	= new Dictionary<QuestionType, IQuestionFactory>
+		{
+			{ QuestionType.Choice, new ChoiceQuestionFactory() },
+			{ QuestionType.Text, new TextQuestionFactory() }
+		};
 
 	// 初期化
 	protected override void OnInitialized()
@@ -123,21 +141,39 @@
 	// 処理
 	private void AddChoice()
 	{
-		newQuestion.Choices.Add(string.Empty);
+		_choices.Add(string.Empty);
 	}
 
 	private void RemoveChoice(int index)
 	{
-		if (index >= 0 && index < newQuestion.Choices.Count)
+		if (index >= 0 && index < _choices.Count)
 		{
-			newQuestion.Choices.RemoveAt(index);
+			_choices.RemoveAt(index);
 		}
 	}
 
 	private void AddQuestion()
 	{
+		var newQuestion = _factories[_questionType].Create(_questionText,_score);
+
+		if(_questionType == QuestionType.Text)
+		{
+			((TextQuestion)newQuestion).CorrectText = _correctText;	
+		}else if(_questionType == QuestionType.Choice)
+		{
+			((ChoiceQuestion)newQuestion).Choices = new List<string>(_choices);
+			((ChoiceQuestion)newQuestion).CorrectIndex = _correctIndex;
+		}
+
 		QuestionManager.AddQuestion(newQuestion);
-		newQuestion = new Question(); // フォームをリセット
+
+		// フォームをリセット
+		_questionText = string.Empty;
+		_questionType = QuestionType.Choice;
+		_correctText = string.Empty;
+		_score = 10;
+		_correctIndex = -1;
+		_choices = new List<string>();
 	}
 
 	private void DeleteQuestion(Question q)
