@@ -1,0 +1,196 @@
+﻿@page "/admin"
+@rendermode InteractiveServer
+@inject QuestionManager QuestionManager
+@inject RoomManager RoomManager
+
+@using BlazorApp1.Components.Logic
+@using BlazorApp1.Components.Model
+@using BlazorApp2.Components.Logic
+
+
+<PageTitle>Admin</PageTitle>
+
+<h3>管理者ページ</h3>
+
+<div>
+	@* 問題追加フォーム *@
+	<div>
+		<h4>問題追加</h4>
+
+		<div>
+			<label>問題文:</label>
+			<input type="text" class="form-control" @bind="_questionText" />
+		</div>
+
+		<div>
+			<label>点数:</label>
+			<input type="number" class="form-control" @bind="_score" />
+		</div>
+
+		<div>
+			<label>問題タイプ:</label>
+			<select type="number" class="form-control" @bind="_questionType" >
+				<option value="Choice">選択式</option>
+				<option value="Text">記述式</option>
+			</select>
+		</div>
+
+		@if(_questionType == QuestionType.Text)
+		{
+			<div>
+				<label>正解:</label>
+				<input type="text" class="form-control" @bind="_correctText" />
+			</div>
+		}
+		else if(_questionType == QuestionType.Choice)
+		{
+			<div>
+				<label>選択肢：</label>
+				<InputRadioGroup @bind-Value="_correctIndex">
+					@foreach (var choice in _choices.Select((c, i) => new { c, i }))
+					{
+						<div class="input-group mb-2">
+							<InputRadio class="form-check" Value="choice.i"/>
+							<input type="text" class="form-control" @bind="_choices[choice.i]" />
+							<button class="btn btn-danger" @onclick="() => _choices.RemoveAt(choice.i)">削除</button>
+						</div>
+					}
+				</InputRadioGroup>
+
+				<button class="btn btn-primary" @onclick="() => _choices.Add(string.Empty)">選択肢追加</button>
+			</div>
+		}
+
+		<button class="btn btn-primary" @onclick="AddQuestion">問題追加</button>
+	</div>
+
+
+	@* 問題追加リスト *@
+	<div>
+		<h4>作成済み問題</h4>
+		<ul>
+			@foreach(var question in QuestionManager.Questions)
+			{
+				<li>
+					<label>問題: @question.Text, 点数: @question.Score, </label>
+
+					@if(question is TextQuestion textQuestion)
+					{
+						<label>タイプ: 記述式, </label>
+						<label>正解: @textQuestion.CorrectText</label>
+					}
+					else if(question is ChoiceQuestion choiceQuestion)
+					{
+						<label>タイプ: 選択式, </label>
+						<label>選択肢：@string.Join(",", @choiceQuestion.Choices)</label>
+					}
+				</li>
+			}
+		</ul>
+
+	</div>
+
+	@* Room追加フォーム *@
+	<div>
+		<h4>Room追加</h4>
+		<div>
+			<label>Room名:</label>
+			<input type="text" class="form-control" @bind="_roomName" />
+			<button class="btn btn-primary" @onclick="AddRoom">Room追加</button>
+		</div>
+	</div>
+
+	@if (!string.IsNullOrEmpty(_errorMessage))
+	{
+		<div class="alert alert-danger">@_errorMessage</div>
+	}
+
+	@* Roomリスト *@
+	<div>
+		<h4>作成済みRoom</h4>
+		<ul>
+			@foreach (var room in RoomManager.Rooms)
+			{
+				<li>
+					<label>ルーム名: @room.Name</label>
+					<button class="btn btn-sm btn-danger" @onclick="() => RoomManager.RemoveRoom(room.Name)">削除</button>
+				</li>
+			}
+		</ul>
+
+	</div>
+
+</div>
+
+@code {
+	private string _questionText = string.Empty;
+	private int _score = 0;
+	private QuestionType _questionType = QuestionType.Choice;
+	private string _correctText = string.Empty;
+	private List<string> _choices = new List<string>();
+	private int _correctIndex = -1;
+	private string _roomName = string.Empty;
+	private string _errorMessage = string.Empty;
+
+	protected override void OnInitialized()
+	{
+		QuestionManager.OnChange += () => InvokeAsync(StateHasChanged);
+	}
+
+	public void Dispose()
+	{
+		QuestionManager.OnChange -= () => InvokeAsync(StateHasChanged);
+	}
+
+	private void AddQuestion(MouseEventArgs args)
+	{
+		Question question;
+
+		if(_questionType == QuestionType.Text)
+		{
+			question = new TextQuestion
+			{
+				Text = _questionText,
+				Score = _score,
+				CorrectText = _correctText
+			};
+		}
+		else if(_questionType == QuestionType.Choice)
+		{
+			question = new ChoiceQuestion
+			{
+				Text = _questionText,
+				Score = _score,
+				Choices = _choices,
+				CorrectIndex = _correctIndex
+			};
+		}
+		else
+		{
+			throw new InvalidOperationException("不明な問題タイプです。");
+		}
+
+
+		QuestionManager.AddQuestion(question);
+
+		_questionText = string.Empty;
+		_score = 0;
+		_questionType = QuestionType.Choice;
+		_correctText = string.Empty;
+		_choices = new List<string>();
+		_correctIndex = 0;
+		_errorMessage = string.Empty;
+	}
+private void AddRoom()
+{
+    try
+    {
+        RoomManager.AddRoom(_roomName);
+        _errorMessage = string.Empty; // 成功時はクリア
+    }
+    catch (Exception ex)
+    {
+        _errorMessage = ex.Message; // 例外メッセージをセット
+    }
+}
+}
