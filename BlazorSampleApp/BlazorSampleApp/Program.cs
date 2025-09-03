@@ -8,6 +8,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddSingleton<QuestionManager>();
+builder.Services.AddSingleton<RoomManager>();
 
 var app = builder.Build();
 
